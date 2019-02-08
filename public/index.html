@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8' />
+  <title>Create a time slider</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' />
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+  <div id='map'></div>
+  <div class='map-overlay top'>
+    <div class='map-overlay-inner'>
+      <label id='month'></label>
+      <input id='slider' type='range' min='0' max='11' step='1' value='0' />
+    </div>
+    <div class="map-overlay-inner">
+        <label for="checkbox" id="label-for-checkbox">Show Labels: </label>
+        <input id='checkbox' type='checkbox' checked />
+    </div>
+  </div>
+
+  <script src='//d3js.org/d3.v3.min.js' charset='utf-8'></script>
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYmFydHNvbmIiLCJhIjoiY2pycTd4Z3EyMW0wMzQzbGEzbWdrNmphMSJ9.ma7qvafj6YZ3vsPNM0kINQ';
+
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/light-v9',
+      center: [-78.830543, 35.786962],
+      zoom: 11
+    });
+
+    var months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+
+    const crimeLabels = {
+      'id': 'crime-labels',
+      'type': 'symbol',
+      'source': 'crimes',
+      'layout': {
+        'text-field': ['format',
+          ['downcase', ['get', 'crime_type']], {
+            'font-scale': 1
+          }
+        ],
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': 8,
+        'text-offset': [0, 1]
+      },
+      'paint': {
+        'text-color': '#000'
+      }
+    }
+
+    const crimeCircles = {
+      'id': 'crime-circles',
+      'type': 'circle',
+      'source': 'crimes',
+      'paint': {
+        'circle-color': '#000',
+        'circle-opacity': 0.75,
+        'circle-radius': 3
+      }
+    }
+
+    const filterBy = (month) => {
+      map.setFilter('crime-circles', ['==', 'month', month]);
+      map.setFilter('crime-labels', ['==', 'month', month]);
+
+      document.getElementById('month').textContent = months[month];
+    }
+
+    const extractDate = (d) => {
+      return parseInt(d.split('/')[0], 10) - 1;
+    }
+
+    map.on('load', function () {
+      d3.json('http://localhost:5000/api/crime-mapping', function (err, data) {
+        if (err) throw err;
+
+        data.features = data.features.map(function (d) {
+          d.properties.month = extractDate(d.properties.date_to);
+          return d;
+        });
+
+        map.addSource('crimes', {
+          'type': 'geojson',
+          data: data
+        });
+
+        map.addLayer(crimeCircles);
+        map.addLayer(crimeLabels);
+
+        filterBy(0);
+
+        document.getElementById('slider').addEventListener('input', function (e) {
+          var month = parseInt(e.target.value, 10);
+          filterBy(month);
+        });
+
+        document.getElementById('checkbox').addEventListener('input', function (e) {
+          !e.target.checked ? map.removeLayer('crime-labels') : map.addLayer(crimeLabels);
+        });
+      });
+    });
+  </script>
+
+</body>
+
+</html>
