@@ -2,6 +2,9 @@
 
 Very small project using a geojson dataset, visualized with  Mapbox.
 
+
+![preview image](public/images/preview.jpg)
+
 ---
 
 ## Getting Started
